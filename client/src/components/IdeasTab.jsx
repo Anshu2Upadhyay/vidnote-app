@@ -49,8 +49,8 @@ export default function IdeasTab({
       return;
     }
 
-    // Format tags
-    const formatted = groupTags
+    // Format tags cleanly with #
+    const formattedTags = groupTags
       .split(/[\s,]+/)
       .map((t) => t.trim())
       .filter(Boolean)
@@ -60,22 +60,32 @@ export default function IdeasTab({
     const newGroup = {
       id: 'grp_' + Date.now(),
       title: groupTitle.trim(),
-      tags: formatted,
+      tags: formattedTags,
       createdAt: Date.now(),
     };
 
-    await db.savedTagGroups.put(newGroup);
-    setGroupTitle('');
-    setGroupTags('');
-    setIsAddingGroup(false);
-    toast.success('Hashtag group saved to vault! 🏷️');
-    loadTagGroups();
+    try {
+      await db.savedTagGroups.put(newGroup);
+      setGroupTitle('');
+      setGroupTags('');
+      setIsAddingGroup(false);
+      await loadTagGroups();
+      toast.success('Hashtag group saved to vault! 🏷️');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save group');
+    }
   };
 
   const handleDeleteGroup = async (id) => {
-    await db.savedTagGroups.delete(id);
-    toast.success('Hashtag group deleted');
-    loadTagGroups();
+    try {
+      await db.savedTagGroups.delete(id);
+      await loadTagGroups();
+      toast.success('Hashtag group removed');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to delete');
+    }
   };
 
   const handleCopyGroup = (group) => {
@@ -87,7 +97,7 @@ export default function IdeasTab({
   };
 
   return (
-    <div className="flex-1 p-4 space-y-6 overflow-y-auto no-scrollbar animate-fade-in">
+    <div className="flex-1 p-4 space-y-6 overflow-y-auto no-scrollbar animate-fade-in transition-colors">
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-blue-600 to-sky-500 rounded-3xl p-5 text-white shadow-lg shadow-blue-500/20">
         <div className="flex items-center gap-2 mb-1.5">
@@ -105,12 +115,12 @@ export default function IdeasTab({
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <Hash size={17} className="text-blue-600" />
-            <h3 className="text-sm font-bold text-slate-800">Hashtag Vault Bundles</h3>
+            <Hash size={17} className="text-blue-600 dark:text-sky-400" />
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Hashtag Vault Bundles</h3>
           </div>
           <button
             onClick={() => setIsAddingGroup(!isAddingGroup)}
-            className="text-xs font-semibold text-blue-600 hover:text-blue-700 bg-blue-50 px-2.5 py-1 rounded-xl flex items-center gap-1 active:scale-95"
+            className="text-xs font-semibold text-blue-600 dark:text-sky-400 hover:text-blue-700 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-xl flex items-center gap-1 active:scale-95 transition-colors"
           >
             <Plus size={14} />
             <span>New Bundle</span>
@@ -119,33 +129,33 @@ export default function IdeasTab({
 
         {/* Create Group Form */}
         {isAddingGroup && (
-          <form onSubmit={handleSaveGroup} className="bg-white p-4 rounded-2xl border border-blue-200 shadow-sm space-y-3 animate-fade-in">
-            <h4 className="text-xs font-bold text-slate-700">Create Reusable Hashtag Group</h4>
+          <form onSubmit={handleSaveGroup} className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-blue-200 dark:border-blue-800 shadow-sm space-y-3 animate-fade-in transition-colors">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-200">Create Reusable Hashtag Group</h4>
             <input
               type="text"
               value={groupTitle}
               onChange={(e) => setGroupTitle(e.target.value)}
               placeholder="e.g. Daily Tech Vlog, Fitness Workout"
-              className="w-full bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 text-xs px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <textarea
               value={groupTags}
               onChange={(e) => setGroupTags(e.target.value)}
               rows={2}
               placeholder="#tech #apple #gadgets #developer"
-              className="w-full bg-slate-50 border border-slate-200 text-xs text-blue-600 font-medium px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-blue-600 dark:text-sky-400 font-medium px-3 py-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <div className="flex justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => setIsAddingGroup(false)}
-                className="px-3 py-1.5 text-xs text-slate-500 font-medium"
+                className="px-3 py-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                className="px-4 py-1.5 bg-blue-600 text-white text-xs font-semibold rounded-xl shadow-xs active:scale-95"
+                className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-xl shadow-xs active:scale-95 transition-colors"
               >
                 Save Group
               </button>
@@ -158,28 +168,28 @@ export default function IdeasTab({
           {tagGroups.map((group) => (
             <div
               key={group.id}
-              className="bg-white p-3.5 rounded-2xl border border-slate-100 shadow-xs hover:border-blue-100 transition-all flex flex-col justify-between"
+              className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs hover:border-blue-100 dark:hover:border-slate-700 transition-all flex flex-col justify-between"
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold text-slate-800">{group.title}</span>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-100">{group.title}</span>
                 <div className="flex items-center gap-1">
                   <button
                     onClick={() => handleCopyGroup(group)}
-                    className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors active:scale-90"
+                    className="p-1.5 text-blue-600 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-slate-800 rounded-lg transition-colors active:scale-90"
                     title="Copy all tags"
                   >
                     {copiedId === group.id ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
                   </button>
                   <button
                     onClick={() => handleDeleteGroup(group.id)}
-                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors active:scale-90"
+                    className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-slate-800 rounded-lg transition-colors active:scale-90"
                     title="Delete group"
                   >
                     <Trash2 size={14} />
                   </button>
                 </div>
               </div>
-              <p className="text-[11px] text-blue-600 font-medium line-clamp-2 leading-relaxed">
+              <p className="text-[11px] text-blue-600 dark:text-sky-400 font-medium line-clamp-2 leading-relaxed">
                 {group.tags}
               </p>
             </div>
@@ -192,13 +202,13 @@ export default function IdeasTab({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
             <Lightbulb size={17} className="text-amber-500" />
-            <h3 className="text-sm font-bold text-slate-800">
+            <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">
               Idea Drafts ({ideaVideos.length})
             </h3>
           </div>
           <button
             onClick={onOpenAddModal}
-            className="text-xs font-semibold text-slate-600 hover:text-blue-600 flex items-center gap-1"
+            className="text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-sky-400 flex items-center gap-1 transition-colors"
           >
             <Plus size={14} />
             <span>Add Idea</span>
@@ -206,14 +216,14 @@ export default function IdeasTab({
         </div>
 
         {ideaVideos.length === 0 ? (
-          <div className="bg-white p-6 rounded-2xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 text-center text-xs text-slate-400">
             No video notes categorized under "Ideas" yet. Add one with the + button!
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {ideaVideos.map((video) => (
               <VideoCard
-                key={video.localId}
+                key={video.id || video.localId}
                 video={video}
                 onOpenPlayer={onOpenPlayer}
                 onTogglePosted={onTogglePosted}

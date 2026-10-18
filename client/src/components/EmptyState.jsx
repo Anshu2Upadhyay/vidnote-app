@@ -109,12 +109,12 @@ export default function EmptyState({ onOpenAdd, onLoadSamples, isLoadingSamples 
       </div>
 
       {/* Heading */}
-      <h2 className="text-xl font-bold text-slate-800 mt-4 tracking-tight">
+      <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100 mt-4 tracking-tight transition-colors">
         Your vault is empty.
       </h2>
 
       {/* Subtitle */}
-      <p className="text-sm text-slate-500 text-center px-8 mt-1 leading-relaxed">
+      <p className="text-sm text-slate-500 dark:text-slate-400 text-center px-8 mt-1 leading-relaxed transition-colors">
         Tap + to add your first video and caption!
       </p>
 
@@ -132,11 +132,11 @@ export default function EmptyState({ onOpenAdd, onLoadSamples, isLoadingSamples 
         <button
           onClick={onLoadSamples}
           disabled={isLoadingSamples}
-          className="w-full bg-white hover:bg-slate-50 active:scale-95 text-slate-600 hover:text-blue-600 border border-slate-200/90 font-medium py-2.5 px-4 rounded-2xl shadow-xs flex items-center justify-center gap-2 text-xs transition-colors"
+          className="w-full bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 active:scale-95 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-sky-400 border border-slate-200/90 dark:border-slate-800 font-medium py-2.5 px-4 rounded-2xl shadow-xs flex items-center justify-center gap-2 text-xs transition-colors"
         >
           {isLoadingSamples ? (
             <>
-              <Loader2 size={15} className="animate-spin text-blue-600" />
+              <Loader2 size={15} className="animate-spin text-blue-600 dark:text-sky-400" />
               <span>Generating Demo Vault...</span>
             </>
           ) : (

@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Toaster, toast } from 'react-hot-toast';
 import confetti from 'canvas-confetti';
+import { App as CapApp } from '@capacitor/app';
 import { db } from './services/db';
 import { populateSampleVideos } from './services/sampleData';
 import { checkServerStatus, syncVideosWithBackend, API_BASE_URL } from './services/syncService';
@@ -24,6 +25,35 @@ export default function App() {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Persistent Dark Mode State
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem('vidnote_theme');
+      if (saved !== null) {
+        return saved === 'dark';
+      }
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch (_e) {
+      return false;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      if (isDarkMode) {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('vidnote_theme', 'dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('vidnote_theme', 'light');
+      }
+    } catch (_e) {}
+  }, [isDarkMode]);
+
+  const toggleDarkMode = () => {
+    setIsDarkMode((prev) => !prev);
+  };
+
   // Network & Sync State
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [serverStatus, setServerStatus] = useState({ serverConnected: false, dbStatus: 'checking' });
@@ -34,6 +64,82 @@ export default function App() {
   const [playerVideo, setPlayerVideo] = useState(null);
   const [editorState, setEditorState] = useState({ isOpen: false, videoToEdit: null });
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+
+  // Refs for Android Hardware / Gesture Back Button handling (avoids stale closures)
+  const editorStateRef = useRef(editorState);
+  editorStateRef.current = editorState;
+  const playerVideoRef = useRef(playerVideo);
+  playerVideoRef.current = playerVideo;
+  const isProfileOpenRef = useRef(isProfileOpen);
+  isProfileOpenRef.current = isProfileOpen;
+  const activeTabRef = useRef(activeTab);
+  activeTabRef.current = activeTab;
+  const lastBackPressRef = useRef(0);
+
+  // Android Hardware / Gesture Back Button Navigation Listener
+  useEffect(() => {
+    let backHandler = null;
+
+    const setupBackButton = async () => {
+      try {
+        backHandler = await CapApp.addListener('backButton', () => {
+          // 1. Close Video Editor modal if open
+          if (editorStateRef.current?.isOpen) {
+            setEditorState({ isOpen: false, videoToEdit: null });
+            return;
+          }
+
+          // 2. Close Full Video Player modal if open
+          if (playerVideoRef.current) {
+            setPlayerVideo(null);
+            return;
+          }
+
+          // 3. Close Profile modal if open
+          if (isProfileOpenRef.current) {
+            setIsProfileOpen(false);
+            return;
+          }
+
+          // 4. Return to 'home' tab if currently on ideas, stats, or settings
+          if (activeTabRef.current !== 'home') {
+            setActiveTab('home');
+            return;
+          }
+
+          // 5. On Home view with no modal open: Require double-tap within 2s to exit app
+          const now = Date.now();
+          if (now - lastBackPressRef.current < 2000) {
+            CapApp.exitApp();
+          } else {
+            lastBackPressRef.current = now;
+            toast('Press back again to exit VidNote', {
+              id: 'exit-toast',
+              duration: 2000,
+              icon: '👋',
+              style: {
+                borderRadius: '16px',
+                background: '#1E293B',
+                color: '#FFFFFF',
+                fontSize: '12px',
+                fontWeight: '600',
+              },
+            });
+          }
+        });
+      } catch (err) {
+        console.warn('Capacitor App backButton listener not supported in this environment:', err);
+      }
+    };
+
+    setupBackButton();
+
+    return () => {
+      if (backHandler && typeof backHandler.remove === 'function') {
+        backHandler.remove();
+      }
+    };
+  }, []);
 
   // 1. Fetch videos from local IndexedDB
   const refreshVideos = async () => {
@@ -321,7 +427,7 @@ export default function App() {
       <UpdatePrompt />
 
       {/* Sleek Mobile-First Viewport Container */}
-      <div className="w-full max-w-md mx-auto min-h-screen md:min-h-[844px] md:max-h-[880px] bg-[#F8FAFC] shadow-2xl relative overflow-hidden flex flex-col md:rounded-[40px] md:border-[8px] md:border-slate-800">
+      <div className="w-full max-w-md mx-auto min-h-screen md:min-h-[844px] md:max-h-[880px] bg-[#F8FAFC] dark:bg-slate-950 text-slate-800 dark:text-slate-100 shadow-2xl relative overflow-hidden flex flex-col md:rounded-[40px] md:border-[8px] md:border-slate-800 transition-colors duration-200">
         {/* Global Header */}
         <Header
           searchQuery={searchQuery}
@@ -331,6 +437,8 @@ export default function App() {
           onSync={handleManualSync}
           isSyncing={isSyncing}
           onOpenProfile={() => setIsProfileOpen(true)}
+          isDarkMode={isDarkMode}
+          onToggleDarkMode={toggleDarkMode}
         />
 
         {/* Tab 1: Home View (Dashboard & 2-Column Grid / Empty State) */}
@@ -408,6 +516,8 @@ export default function App() {
             isLoadingSamples={isLoadingSamples}
             onClearAllData={handleClearAllData}
             videoCount={videos.length}
+            isDarkMode={isDarkMode}
+            onToggleDarkMode={toggleDarkMode}
           />
         )}
 

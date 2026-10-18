@@ -371,19 +371,19 @@ export default function VideoPlayerModal({
         </div>
       </div>
 
-      {/* 3. Bottom White Drawer Sheet */}
-      <div className="bg-white rounded-t-3xl p-5 shadow-2xl max-h-[46vh] flex flex-col overflow-y-auto no-scrollbar border-t border-slate-100">
+      {/* 3. Bottom Drawer Sheet */}
+      <div className="bg-white dark:bg-slate-900 rounded-t-3xl p-5 shadow-2xl max-h-[46vh] flex flex-col overflow-y-auto no-scrollbar border-t border-slate-100 dark:border-slate-800 transition-colors">
         {/* Drag Handle Bar */}
-        <div className="w-12 h-1.5 bg-slate-200 rounded-full mx-auto mb-3 shrink-0" />
+        <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full mx-auto mb-3 shrink-0" />
 
         {/* Unified Copy Header */}
-        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100">
+        <div className="flex items-start justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800">
           <div className="flex-1 pr-1">
-            <h3 className="text-sm font-bold text-slate-900 leading-snug">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 leading-snug">
               {captionTitle}
             </h3>
             {captionBody && (
-              <p className="text-xs text-slate-600 mt-1 whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto no-scrollbar">
+              <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 whitespace-pre-line leading-relaxed max-h-24 overflow-y-auto no-scrollbar">
                 {captionBody}
               </p>
             )}
@@ -406,7 +406,7 @@ export default function VideoPlayerModal({
         {/* Interactive Hashtag Pills */}
         {hashtagList.length > 0 && (
           <div className="py-3">
-            <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block mb-2">
+            <span className="text-[10px] uppercase font-bold text-slate-400 dark:text-slate-500 tracking-wider block mb-2">
               Tap any hashtag to copy:
             </span>
             <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto no-scrollbar">
@@ -414,7 +414,7 @@ export default function VideoPlayerModal({
                 <button
                   key={idx}
                   onClick={() => handleCopySingleTag(tag)}
-                  className="bg-blue-50 hover:bg-blue-100 active:scale-95 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium border border-blue-100/80 transition-colors"
+                  className="bg-blue-50 dark:bg-sky-950/40 hover:bg-blue-100 dark:hover:bg-sky-900/60 active:scale-95 text-blue-600 dark:text-sky-400 px-3 py-1 rounded-lg text-xs font-medium border border-blue-100/80 dark:border-sky-800/60 transition-colors"
                 >
                   {tag}
                 </button>
@@ -429,8 +429,8 @@ export default function VideoPlayerModal({
             onClick={handleCopyAndMarkPosted}
             className={`flex-1 py-2.5 px-3 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-xs ${
               video.isPosted
-                ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                : 'bg-slate-900 hover:bg-slate-800 text-white'
+                ? 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60'
+                : 'bg-slate-900 dark:bg-blue-600 hover:bg-slate-800 dark:hover:bg-blue-500 text-white'
             }`}
           >
             <CheckCircle2 size={15} />
@@ -439,7 +439,7 @@ export default function VideoPlayerModal({
 
           <button
             onClick={handleShare}
-            className="py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center gap-1.5 transition-colors"
+            className="py-2.5 px-4 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center justify-center gap-1.5 transition-colors"
           >
             <Share2 size={15} />
             <span>Share</span>

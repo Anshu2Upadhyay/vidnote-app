@@ -53,7 +53,7 @@ export default function VideoCard({
   };
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col group">
+    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all overflow-hidden flex flex-col group">
       {/* 1. Thumbnail Section (Top) */}
       <div
         onClick={() => onOpenPlayer(video)}
@@ -121,12 +121,12 @@ export default function VideoCard({
       </div>
 
       {/* 2. Unified Caption & Hashtag Block (Bottom of Card) */}
-      <div className="p-3 flex flex-col justify-between flex-1 bg-white">
+      <div className="p-3 flex flex-col justify-between flex-1 bg-white dark:bg-slate-900 transition-colors">
         {/* Top Row of Block: Caption + Copy Button */}
         <div className="flex items-start justify-between gap-2">
           <p
             onClick={() => onOpenPlayer(video)}
-            className="text-xs font-semibold text-slate-800 line-clamp-2 leading-snug cursor-pointer hover:text-blue-600 transition-colors flex-1"
+            className="text-xs font-semibold text-slate-800 dark:text-slate-100 line-clamp-2 leading-snug cursor-pointer hover:text-blue-600 dark:hover:text-sky-400 transition-colors flex-1"
             title={video.caption}
           >
             {video.caption || 'No caption entered'}
@@ -147,10 +147,10 @@ export default function VideoCard({
         </div>
 
         {/* Bottom Row of Block: Hashtags Text */}
-        <div className="mt-1.5 pt-1.5 border-t border-slate-50">
+        <div className="mt-1.5 pt-1.5 border-t border-slate-50 dark:border-slate-800/80">
           <p
             onClick={() => onOpenPlayer(video)}
-            className="text-[11px] text-blue-600 font-medium line-clamp-2 leading-tight cursor-pointer hover:underline"
+            className="text-[11px] text-blue-600 dark:text-sky-400 font-medium line-clamp-2 leading-tight cursor-pointer hover:underline"
             title={video.hashtags}
           >
             {video.hashtags || '#caption #video'}

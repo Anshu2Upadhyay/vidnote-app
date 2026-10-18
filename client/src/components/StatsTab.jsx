@@ -1,4 +1,3 @@
-import React from 'react';
 import {
   Hash,
   Video,
@@ -48,49 +47,49 @@ export default function StatsTab({ videos }) {
   };
 
   return (
-    <div className="flex-1 p-4 space-y-5 overflow-y-auto no-scrollbar animate-fade-in">
+    <div className="flex-1 p-4 space-y-4 overflow-y-auto no-scrollbar animate-fade-in transition-colors">
       {/* Header */}
       <div>
-        <h2 className="text-lg font-bold text-slate-800">Creator Analytics</h2>
-        <p className="text-xs text-slate-500">Track your video vault production & hashtag performance</p>
+        <h2 className="text-lg font-bold text-slate-800 dark:text-slate-100 transition-colors">Creator Analytics</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Track your video vault production & hashtag performance</p>
       </div>
 
       {/* Overview Metric Cards */}
       <div className="grid grid-cols-2 gap-3">
         {/* Card 1: Total Videos */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex items-center gap-3 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0">
             <Video size={20} />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-slate-900">{totalVideos}</div>
-            <div className="text-[11px] font-medium text-slate-500">Total Videos</div>
+            <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{totalVideos}</div>
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Total Videos</div>
           </div>
         </div>
 
         {/* Card 2: Unique Hashtags */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center shrink-0">
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs flex items-center gap-3 transition-colors">
+          <div className="w-10 h-10 rounded-xl bg-sky-50 dark:bg-sky-950/50 text-sky-600 dark:text-sky-400 flex items-center justify-center shrink-0">
             <Hash size={20} />
           </div>
           <div>
-            <div className="text-xl font-extrabold text-slate-900">{uniqueHashtagsCount}</div>
-            <div className="text-[11px] font-medium text-slate-500">Unique Tags</div>
+            <div className="text-xl font-extrabold text-slate-900 dark:text-slate-100">{uniqueHashtagsCount}</div>
+            <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">Unique Tags</div>
           </div>
         </div>
       </div>
 
       {/* Production Status: Drafts vs Posted */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-3 transition-colors">
         <div className="flex items-center justify-between">
-          <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+          <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
             Publishing Status
           </h3>
-          <span className="text-xs font-bold text-blue-600">{postedPercent}% Posted</span>
+          <span className="text-xs font-bold text-blue-600 dark:text-sky-400">{postedPercent}% Posted</span>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex">
+        <div className="w-full h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden flex">
           <div
             style={{ width: `${postedPercent}%` }}
             className="bg-emerald-500 transition-all duration-500 rounded-full"
@@ -100,21 +99,21 @@ export default function StatsTab({ videos }) {
         <div className="flex items-center justify-between pt-1 text-xs">
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-            <span className="font-semibold text-slate-700">{postedCount} Posted</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">{postedCount} Posted</span>
           </div>
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-slate-300" />
-            <span className="font-semibold text-slate-500">{draftCount} Drafts</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-slate-300 dark:bg-slate-700" />
+            <span className="font-semibold text-slate-500 dark:text-slate-400">{draftCount} Drafts</span>
           </div>
         </div>
       </div>
 
       {/* Top 5 Most Used Hashtags */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs space-y-3">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-3 transition-colors">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <TrendingUp size={16} className="text-blue-600" />
-            <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+            <TrendingUp size={16} className="text-blue-600 dark:text-sky-400" />
+            <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
               Top 5 Most Used Hashtags
             </h3>
           </div>
@@ -133,14 +132,14 @@ export default function StatsTab({ videos }) {
                   <div className="flex items-center justify-between text-xs">
                     <button
                       onClick={() => handleCopyTag(tag)}
-                      className="font-semibold text-blue-600 hover:underline flex items-center gap-1 active:scale-95"
+                      className="font-semibold text-blue-600 dark:text-sky-400 hover:underline flex items-center gap-1 active:scale-95"
                     >
                       <span>#{index + 1} {tag}</span>
                       <Copy size={11} className="text-slate-400" />
                     </button>
-                    <span className="font-bold text-slate-600 text-[11px]">{count}x</span>
+                    <span className="font-bold text-slate-600 dark:text-slate-300 text-[11px]">{count}x</span>
                   </div>
-                  <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                     <div
                       style={{ width: `${barWidth}%` }}
                       className="h-full bg-blue-500 rounded-full"
@@ -154,15 +153,15 @@ export default function StatsTab({ videos }) {
       </div>
 
       {/* Category Breakdown */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-xs space-y-2.5">
-        <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+      <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-xs space-y-2.5 transition-colors">
+        <h3 className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider">
           Category Distribution
         </h3>
         <div className="grid grid-cols-2 gap-2">
           {['Reels', 'YouTube', 'Ideas', 'Travel'].map((cat) => (
-            <div key={cat} className="p-2.5 rounded-xl bg-slate-50 flex items-center justify-between">
-              <span className="text-xs font-semibold text-slate-700">{cat}</span>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+            <div key={cat} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 flex items-center justify-between transition-colors">
+              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{cat}</span>
+              <span className="text-xs font-bold text-blue-600 dark:text-sky-400 bg-blue-50 dark:bg-blue-950/60 px-2 py-0.5 rounded-full">
                 {categoryMap[cat] || 0}
               </span>
             </div>
