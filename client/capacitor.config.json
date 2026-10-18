@@ -1,0 +1,11 @@
+{
+  "appId": "com.vidnote.app",
+  "appName": "VidNote",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true,
+    "_comment": "LIVE OVER-THE-AIR (OTA) UPDATES: Set 'url' to your deployed Vercel URL (e.g., 'https://vidnote.vercel.app') for instant cloud updates. The PWA Service Worker ensures 100% offline resilience."
+  }
+}
