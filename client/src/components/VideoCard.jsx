@@ -13,7 +13,10 @@ export default function VideoCard({
   // Unified Copy Action (copies full caption + hashtags in one block)
   const handleCopyUnified = (e) => {
     e.stopPropagation();
-    const fullBlock = `${video.caption || ''}\n\n${video.hashtags || ''}`.trim();
+    let fullBlock = (video.caption || '').trim();
+    if (video.hashtags && !fullBlock.includes(video.hashtags)) {
+      fullBlock = fullBlock ? `${fullBlock}\n\n${video.hashtags}` : video.hashtags;
+    }
     if (!fullBlock) {
       toast('Empty caption & hashtags to copy', { icon: 'ℹ️' });
       return;

@@ -145,7 +145,10 @@ export default function VideoPlayerModal({
 
   // Unified Copy Action (Copies [Caption]\n\n[Hashtags])
   const handleCopyAll = () => {
-    const fullBlock = `${video.caption || ''}\n\n${video.hashtags || ''}`.trim();
+    let fullBlock = (video.caption || '').trim();
+    if (video.hashtags && !fullBlock.includes(video.hashtags)) {
+      fullBlock = fullBlock ? `${fullBlock}\n\n${video.hashtags}` : video.hashtags;
+    }
     if (!fullBlock) {
       toast('Empty caption & hashtags to copy', { icon: 'ℹ️' });
       return;
@@ -172,7 +175,10 @@ export default function VideoPlayerModal({
 
   // Native Web Share or Share Action
   const handleShare = async () => {
-    const fullText = `${video.caption || ''}\n\n${video.hashtags || ''}`.trim();
+    let fullText = (video.caption || '').trim();
+    if (video.hashtags && !fullText.includes(video.hashtags)) {
+      fullText = fullText ? `${fullText}\n\n${video.hashtags}` : video.hashtags;
+    }
 
     if (navigator.share) {
       try {

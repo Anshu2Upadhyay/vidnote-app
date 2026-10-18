@@ -32,8 +32,8 @@ export default function VideoEditorModal({
   initialVideo = null,
   onSave,
 }) {
-  const [caption, setCaption] = useState('');
-  const [hashtags, setHashtags] = useState('');
+  // Single unified container for Caption & Hashtags
+  const [content, setContent] = useState('');
   const [category, setCategory] = useState('Reels');
   const [videoUri, setVideoUri] = useState('');
   const [videoPreviewUrl, setVideoPreviewUrl] = useState('');
@@ -52,8 +52,14 @@ export default function VideoEditorModal({
   useEffect(() => {
     if (isOpen) {
       if (initialVideo) {
-        setCaption(initialVideo.caption || '');
-        setHashtags(initialVideo.hashtags || '');
+        // Merge caption and hashtags into a single unified container
+        let combined = (initialVideo.caption || '').trim();
+        if (initialVideo.hashtags) {
+          if (!combined.includes(initialVideo.hashtags)) {
+            combined = combined ? `${combined}\n\n${initialVideo.hashtags}` : initialVideo.hashtags;
+          }
+        }
+        setContent(combined);
         setCategory(initialVideo.category || 'Reels');
         setThumbnail(initialVideo.thumbnail || '');
         setDuration(initialVideo.duration || 0);
@@ -66,8 +72,7 @@ export default function VideoEditorModal({
         setVideoPreviewUrl(resolved || '');
       } else {
         // Reset form
-        setCaption('');
-        setHashtags('');
+        setContent('');
         setCategory('Reels');
         setVideoUri('');
         setVideoPreviewUrl('');
@@ -183,25 +188,28 @@ export default function VideoEditorModal({
 
   // Format Spacing action (cleans excessive spaces, ensures clean line breaks for IG/YT)
   const handleFormatSpacing = () => {
-    if (!caption.trim()) {
-      toast('Write caption first to format', { icon: 'ℹ️' });
+    if (!content.trim()) {
+      toast('Write caption & hashtags first to format', { icon: 'ℹ️' });
       return;
     }
-    const formatted = caption
+    const formatted = content
       .split('\n')
       .map((line) => line.trim())
       .filter((line, i, arr) => !(line === '' && arr[i - 1] === ''))
       .join('\n');
 
-    setCaption(formatted);
-    toast.success('Caption spacing polished! ✨', { duration: 1500 });
+    setContent(formatted);
+    toast.success('Caption & hashtag spacing polished! ✨', { duration: 1500 });
   };
 
-  // Append preset hashtags
+  // Append preset hashtags directly into the single unified container
   const handleAddPreset = (tags) => {
-    setHashtags((prev) => {
-      const existing = prev ? prev.trim() + ' ' : '';
-      return (existing + tags).trim();
+    setContent((prev) => {
+      if (!prev.trim()) {
+        return tags;
+      }
+      const needsDoubleNewline = !prev.endsWith('\n\n') && !prev.endsWith(' ');
+      return prev.trimEnd() + (needsDoubleNewline ? '\n\n' : ' ') + tags;
     });
   };
 
@@ -217,20 +225,22 @@ export default function VideoEditorModal({
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  // Save handler (Zero Duplication: stores only metadata, native URI reference & ~50KB thumbnail)
+  // Save handler: extracts hashtags for indexing/pills while preserving the unified text block
   const handleSave = () => {
-    if (!caption.trim() && !videoUri && !thumbnail) {
+    if (!content.trim() && !videoUri && !thumbnail) {
       toast.error('Please enter a caption or choose a video');
       return;
     }
 
-    // Format hashtags nicely with #
-    let cleanedTags = hashtags
-      .split(/[\s,]+/)
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .map((t) => (t.startsWith('#') ? t : `#${t}`))
-      .join(' ');
+    // Extract hashtags from unified content for search, analytics, and pills
+    const hashtagMatches = content.match(/#[^\s#]+/g) || [];
+    const cleanedTags = Array.from(new Set(hashtagMatches)).join(' ');
+
+    // Separate clean caption body from trailing hashtags block if present
+    let cleanCaption = content.replace(/(?:\s*#[^\s#]+)+\s*$/, '').trim();
+    if (!cleanCaption) {
+      cleanCaption = content.trim();
+    }
 
     const recordId = initialVideo?.id || initialVideo?.localId || generateLocalId();
     const effectiveStatus = initialVideo
@@ -244,10 +254,10 @@ export default function VideoEditorModal({
     const videoRecord = {
       id: recordId,
       localId: recordId, // backwards compatibility
-      title: videoName || (caption ? caption.slice(0, 30) + '...' : 'Video Note'),
+      title: videoName || (cleanCaption ? cleanCaption.slice(0, 30) + '...' : 'Video Note'),
       videoUri: videoUri || initialVideo?.videoUri || '',
       thumbnail: thumbnail || '',
-      caption: caption.trim(),
+      caption: cleanCaption,
       hashtags: cleanedTags,
       category,
       status: effectiveStatus,
@@ -288,7 +298,7 @@ export default function VideoEditorModal({
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 no-scrollbar">
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 no-scrollbar">
           {/* Section 1: Video Picker Box (Zero-Duplicate) */}
           <div>
             <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
@@ -309,10 +319,10 @@ export default function VideoEditorModal({
                 {/* Soft blue dashed card */}
                 <div
                   onClick={handleOpenPicker}
-                  className="bg-blue-50/60 hover:bg-blue-50/90 border-2 border-dashed border-blue-200 hover:border-blue-300 rounded-2xl p-6 text-center cursor-pointer transition-all active:scale-[0.99]"
+                  className="bg-blue-50/60 hover:bg-blue-50/90 border-2 border-dashed border-blue-200 hover:border-blue-300 rounded-2xl p-5 text-center cursor-pointer transition-all active:scale-[0.99]"
                 >
-                  <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-2 shadow-xs">
-                    <Camera size={22} />
+                  <div className="w-11 h-11 mx-auto rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-2 shadow-xs">
+                    <Camera size={20} />
                   </div>
                   <p className="text-blue-600 font-semibold text-sm">
                     Select Video from Gallery
@@ -436,73 +446,62 @@ export default function VideoEditorModal({
             </div>
           </div>
 
-          {/* Section 3: Caption Input */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Caption
-              </label>
+          {/* Section 3: Single Unified Container for Caption & Hashtags */}
+          <div className="bg-slate-50/80 rounded-2xl p-3.5 border border-slate-200/80 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <label className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                  Caption & Hashtags
+                </label>
+                <span className="text-[10px] font-semibold text-blue-600 bg-blue-50 border border-blue-100 px-1.5 py-0.2 rounded-md">
+                  Unified Box
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={handleFormatSpacing}
-                  className="text-[11px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 bg-blue-50 px-2 py-0.5 rounded-md"
+                  className="text-[11px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 bg-white border border-blue-200 shadow-2xs px-2.5 py-1 rounded-lg active:scale-95 transition-all"
                 >
-                  <Sparkles size={11} />
+                  <Sparkles size={11} className="text-blue-500" />
                   <span>Format Spacing</span>
                 </button>
                 <span
                   className={`text-[11px] font-medium ${
-                    caption.length > 480 ? 'text-amber-600 font-bold' : 'text-slate-400'
+                    content.length > 650 ? 'text-amber-600 font-bold' : 'text-slate-400'
                   }`}
                 >
-                  {caption.length}/500
+                  {content.length}/700
                 </span>
               </div>
             </div>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value.slice(0, 500))}
-              placeholder="Write an engaging caption for your reel or short..."
-              rows={4}
-              className="w-full text-sm p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-slate-800 placeholder-slate-400"
-            />
-          </div>
 
-          {/* Section 4: Hashtags Input */}
-          <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
-                Hashtags
-              </label>
-              <span
-                className={`text-[11px] font-medium ${
-                  hashtags.length > 180 ? 'text-amber-600 font-bold' : 'text-slate-400'
-                }`}
-              >
-                {hashtags.length}/200
+            {/* Single Textarea for both caption and hashtags */}
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value.slice(0, 700))}
+              placeholder="Write your reel caption and add #hashtags together here...&#10;&#10;e.g. Breathtaking sunset over the coastline 🌅✨&#10;&#10;#reels #travel #beachvibes #sunset"
+              rows={6}
+              className="w-full text-sm p-3.5 rounded-xl border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-slate-800 placeholder-slate-400 leading-relaxed"
+            />
+
+            {/* Quick Hashtag Presets pills directly underneath within the same container */}
+            <div className="pt-1">
+              <span className="text-[11px] font-semibold text-slate-500 block mb-1.5">
+                Quick Insert Hashtag Presets:
               </span>
-            </div>
-            <textarea
-              value={hashtags}
-              onChange={(e) => setHashtags(e.target.value.slice(0, 200))}
-              placeholder="#reels #explore #viral #creator..."
-              rows={2}
-              className="w-full text-sm p-3 rounded-2xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all resize-none text-slate-800 placeholder-slate-400 font-mono text-xs"
-            />
-
-            {/* Quick Hashtag Presets pills */}
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {PRESET_HASHTAGS.map((preset) => (
-                <button
-                  key={preset.label}
-                  type="button"
-                  onClick={() => handleAddPreset(preset.tags)}
-                  className="text-[11px] font-medium text-blue-600 bg-blue-50/80 hover:bg-blue-100 px-2.5 py-1 rounded-lg transition-colors active:scale-95"
-                >
-                  {preset.label}
-                </button>
-              ))}
+              <div className="flex flex-wrap gap-1.5">
+                {PRESET_HASHTAGS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => handleAddPreset(preset.tags)}
+                    className="text-[11px] font-semibold text-blue-600 bg-white hover:bg-blue-50 border border-blue-100 hover:border-blue-200 shadow-2xs px-2.5 py-1 rounded-lg transition-all active:scale-95"
+                  >
+                    {preset.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
