@@ -3,7 +3,7 @@ import { Toaster, toast } from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { db } from './services/db';
 import { populateSampleVideos } from './services/sampleData';
-import { checkServerStatus, syncVideosWithBackend } from './services/syncService';
+import { checkServerStatus, syncVideosWithBackend, API_BASE_URL } from './services/syncService';
 
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
@@ -223,7 +223,7 @@ export default function App() {
 
       // Silently sync delete if online
       if (isOnline && serverStatus.serverConnected) {
-        fetch(`http://localhost:5000/api/videos/${video.localId}`, {
+        fetch(`${API_BASE_URL}/videos/${videoKey}`, {
           method: 'DELETE',
         }).catch(() => {});
       }
