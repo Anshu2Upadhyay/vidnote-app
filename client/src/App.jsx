@@ -76,56 +76,92 @@ export default function App() {
   activeTabRef.current = activeTab;
   const lastBackPressRef = useRef(0);
 
-  // Android Hardware / Gesture Back Button Navigation Listener
+  // Universal Back Button Handler (Modals -> Tabs -> Double tap exit)
+  const handleUniversalBack = () => {
+    // 1. Close Video Editor modal if open
+    if (editorStateRef.current?.isOpen) {
+      setEditorState({ isOpen: false, videoToEdit: null });
+      return true;
+    }
+
+    // 2. Close Full Video Player modal if open
+    if (playerVideoRef.current) {
+      setPlayerVideo(null);
+      return true;
+    }
+
+    // 3. Close Profile modal if open
+    if (isProfileOpenRef.current) {
+      setIsProfileOpen(false);
+      return true;
+    }
+
+    // 4. Return to 'home' tab if currently on ideas, stats, or settings
+    if (activeTabRef.current !== 'home') {
+      setActiveTab('home');
+      return true;
+    }
+
+    // 5. On Home view with no modal open: Require double-tap within 2s to exit app
+    const now = Date.now();
+    if (now - lastBackPressRef.current < 2000) {
+      try {
+        CapApp.exitApp();
+      } catch (_e) {}
+      return false;
+    } else {
+      lastBackPressRef.current = now;
+      toast('Press back again to exit VidNote', {
+        id: 'exit-toast',
+        duration: 2000,
+        icon: '👋',
+        style: {
+          borderRadius: '16px',
+          background: '#1E293B',
+          color: '#FFFFFF',
+          fontSize: '12px',
+          fontWeight: '600',
+        },
+      });
+      return true;
+    }
+  };
+
+  // Expose to window for Android MainActivity.java BridgeActivity.onBackPressed()
+  useEffect(() => {
+    window.handleVidNoteBack = handleUniversalBack;
+    return () => {
+      delete window.handleVidNoteBack;
+    };
+  }, []);
+
+  // Browser / PWA / WebView History Trapping
+  useEffect(() => {
+    // Push an initial history entry to prevent immediate browser exit
+    window.history.pushState({ vidnote: 'root' }, '');
+
+    const handlePopState = () => {
+      const handled = handleUniversalBack();
+      if (handled) {
+        // Keep a history buffer so future back presses continue to be trapped
+        window.history.pushState({ vidnote: 'buffer' }, '');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, []);
+
+  // Capacitor App Plugin Hardware / Gesture Back Button Listener
   useEffect(() => {
     let backHandler = null;
 
     const setupBackButton = async () => {
       try {
         backHandler = await CapApp.addListener('backButton', () => {
-          // 1. Close Video Editor modal if open
-          if (editorStateRef.current?.isOpen) {
-            setEditorState({ isOpen: false, videoToEdit: null });
-            return;
-          }
-
-          // 2. Close Full Video Player modal if open
-          if (playerVideoRef.current) {
-            setPlayerVideo(null);
-            return;
-          }
-
-          // 3. Close Profile modal if open
-          if (isProfileOpenRef.current) {
-            setIsProfileOpen(false);
-            return;
-          }
-
-          // 4. Return to 'home' tab if currently on ideas, stats, or settings
-          if (activeTabRef.current !== 'home') {
-            setActiveTab('home');
-            return;
-          }
-
-          // 5. On Home view with no modal open: Require double-tap within 2s to exit app
-          const now = Date.now();
-          if (now - lastBackPressRef.current < 2000) {
-            CapApp.exitApp();
-          } else {
-            lastBackPressRef.current = now;
-            toast('Press back again to exit VidNote', {
-              id: 'exit-toast',
-              duration: 2000,
-              icon: '👋',
-              style: {
-                borderRadius: '16px',
-                background: '#1E293B',
-                color: '#FFFFFF',
-                fontSize: '12px',
-                fontWeight: '600',
-              },
-            });
-          }
+          handleUniversalBack();
         });
       } catch (err) {
         console.warn('Capacitor App backButton listener not supported in this environment:', err);
