@@ -18,6 +18,8 @@ import {
 import toast from 'react-hot-toast';
 import confetti from 'canvas-confetti';
 import { formatDuration } from '../services/db';
+import { resolveVideoPlaybackUrl } from '../services/videoUtils';
+import { createPlayableVideoBlob } from '../services/sampleData';
 
 export default function VideoPlayerModal({
   video,
@@ -36,19 +38,45 @@ export default function VideoPlayerModal({
   const videoRef = useRef(null);
   const playerContainerRef = useRef(null);
 
-  // Initialize video blob object URL
+  // Initialize video stream directly from native reference (Capacitor.convertFileSrc) or Web session
   useEffect(() => {
-    let url = '';
-    if (video?.videoBlob) {
-      url = URL.createObjectURL(video.videoBlob);
-      setVideoSrc(url);
-    } else if (video?.thumbnail) {
-      // Fallback if no binary blob
-      setVideoSrc('');
+    let isMounted = true;
+    let objectUrlToRevoke = null;
+
+    async function initVideo() {
+      if (!video) return;
+
+      // Handle sample demo videos dynamically without saving heavy Blobs in IndexedDB
+      if (video.videoUri && video.videoUri.startsWith('sample://')) {
+        const sceneType = video.videoUri.replace('sample://', '') || 'sunset';
+        try {
+          const blob = await createPlayableVideoBlob(sceneType, 3);
+          if (isMounted) {
+            const url = URL.createObjectURL(blob);
+            objectUrlToRevoke = url;
+            setVideoSrc(url);
+          }
+        } catch (err) {
+          console.warn('Sample video generation fallback:', err);
+          if (isMounted) setVideoSrc('');
+        }
+        return;
+      }
+
+      // Stream directly from native device path or web session URL
+      const resolved = resolveVideoPlaybackUrl(video);
+      if (isMounted) {
+        setVideoSrc(resolved);
+      }
     }
 
+    initVideo();
+
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      isMounted = false;
+      if (objectUrlToRevoke) {
+        URL.revokeObjectURL(objectUrlToRevoke);
+      }
     };
   }, [video]);
 
@@ -149,14 +177,9 @@ export default function VideoPlayerModal({
     if (navigator.share) {
       try {
         const shareData = {
-          title: 'VidNote Video Post',
+          title: video.title || 'VidNote Video Post',
           text: fullText,
         };
-
-        // If file can be shared
-        if (video.videoBlob && navigator.canShare && navigator.canShare({ files: [new File([video.videoBlob], video.videoName || 'video.mp4', { type: video.videoType || 'video/mp4' })] })) {
-          shareData.files = [new File([video.videoBlob], video.videoName || 'video.mp4', { type: video.videoType || 'video/mp4' })];
-        }
 
         await navigator.share(shareData);
         toast.success('Shared successfully! 🚀');

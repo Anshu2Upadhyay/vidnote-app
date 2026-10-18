@@ -392,85 +392,86 @@ export async function populateSampleVideos() {
     return;
   }
 
-  // Generate real playable Blobs and Base64 thumbnails for all 4 items
-  const [blob1, blob2, blob3, blob4] = await Promise.all([
-    createPlayableVideoBlob('mountain', 3),
-    createPlayableVideoBlob('dog', 3),
-    createPlayableVideoBlob('sunset', 3),
-    createPlayableVideoBlob('coffee', 3),
-  ]);
-
   const thumb1 = generateSceneThumbnail('mountain');
   const thumb2 = generateSceneThumbnail('dog');
   const thumb3 = generateSceneThumbnail('sunset');
   const thumb4 = generateSceneThumbnail('coffee');
 
+  const id1 = generateLocalId();
+  const id2 = generateLocalId();
+  const id3 = generateLocalId();
+  const id4 = generateLocalId();
+
   const sampleItems = [
     {
-      localId: generateLocalId(),
+      id: id1,
+      localId: id1,
+      title: 'Swiss Alps Golden Hour',
+      videoUri: 'sample://mountain',
       caption: 'Golden hour over the snow peaks in the Swiss Alps 🏔️✨ Breathtaking view after a 4-hour morning hike! Save this spot for your next adventure.',
       hashtags: '#travel #nature #mountains #wanderlust #adventure #reels #explore',
       category: 'Travel',
       duration: 24,
       durationFormatted: '0:24',
       thumbnail: thumb1,
-      videoBlob: blob1,
-      videoName: 'swiss_alps_golden_hour.mp4',
-      videoType: blob1.type || 'video/mp4',
-      videoSize: blob1.size || 254000,
+      status: 'Draft',
       isPosted: false,
-      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 3, // 3 hours ago
+      createdAt: Date.now() - 1000 * 60 * 60 * 3, // 3 hours ago
+      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 3,
       clientUpdatedAt: Date.now() - 1000 * 60 * 60 * 3,
       synced: false,
     },
     {
-      localId: generateLocalId(),
+      id: id2,
+      localId: id2,
+      title: 'Leo Central Park Walk',
+      videoUri: 'sample://dog',
       caption: 'Meet Leo! He found the biggest stick in Central Park today and refused to drop it 🐶🎾 Cutest morning walk ever.',
       hashtags: '#dogsoftiktok #goldenretriever #puppylove #pets #doglife #wholesome',
       category: 'Reels',
       duration: 18,
       durationFormatted: '0:18',
       thumbnail: thumb2,
-      videoBlob: blob2,
-      videoName: 'leo_golden_retriever.mp4',
-      videoType: blob2.type || 'video/mp4',
-      videoSize: blob2.size || 198000,
+      status: 'Posted',
       isPosted: true,
-      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 8, // 8 hours ago
+      createdAt: Date.now() - 1000 * 60 * 60 * 8, // 8 hours ago
+      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 8,
       clientUpdatedAt: Date.now() - 1000 * 60 * 60 * 8,
       synced: false,
     },
     {
-      localId: generateLocalId(),
+      id: id3,
+      localId: id3,
+      title: 'Pacific Waves & Sunset',
+      videoUri: 'sample://sunset',
       caption: 'Chasing horizons and calm evenings by the Pacific coast 🌅🌊 Sometimes all you need is a moment of stillness and crashing waves.',
       hashtags: '#sunset #beachvibes #ocean #peaceful #mindfulness #aesthetic #travel',
       category: 'YouTube',
       duration: 32,
       durationFormatted: '0:32',
       thumbnail: thumb3,
-      videoBlob: blob3,
-      videoName: 'sunset_pacific_waves.mp4',
-      videoType: blob3.type || 'video/mp4',
-      videoSize: blob3.size || 340000,
+      status: 'Draft',
       isPosted: false,
-      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 24, // 1 day ago
+      createdAt: Date.now() - 1000 * 60 * 60 * 24, // 1 day ago
+      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 24,
       clientUpdatedAt: Date.now() - 1000 * 60 * 60 * 24,
       synced: false,
     },
     {
-      localId: generateLocalId(),
+      id: id4,
+      localId: id4,
+      title: 'Morning Latte Fuel',
+      videoUri: 'sample://coffee',
       caption: 'Monday fuel ☕ Oat milk latte with extra cinnamon to kickstart a productive creative week! What is your go-to morning brew?',
       hashtags: '#coffeetime #latteart #morningroutine #productivity #cafevibes #ideas',
       category: 'Ideas',
       duration: 15,
       durationFormatted: '0:15',
       thumbnail: thumb4,
-      videoBlob: blob4,
-      videoName: 'morning_latte_art.mp4',
-      videoType: blob4.type || 'video/mp4',
-      videoSize: blob4.size || 164000,
+      status: 'Draft',
       isPosted: false,
-      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 36, // 1.5 days ago
+      createdAt: Date.now() - 1000 * 60 * 60 * 36, // 1.5 days ago
+      clientCreatedAt: Date.now() - 1000 * 60 * 60 * 36,
       clientUpdatedAt: Date.now() - 1000 * 60 * 60 * 36,
       synced: false,
     },

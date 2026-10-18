@@ -149,15 +149,18 @@ export default function App() {
   // Toggle isPosted status
   const handleTogglePosted = async (video) => {
     try {
+      const willBePosted = !(video.status === 'Posted' || video.isPosted);
       const updated = {
         ...video,
-        isPosted: !video.isPosted,
+        status: willBePosted ? 'Posted' : 'Draft',
+        isPosted: willBePosted,
         clientUpdatedAt: Date.now(),
       };
       await db.videos.put(updated);
       await refreshVideos();
 
-      if (playerVideo && playerVideo.localId === video.localId) {
+      const videoKey = video.id || video.localId;
+      if (playerVideo && (playerVideo.id === videoKey || playerVideo.localId === videoKey)) {
         setPlayerVideo(updated);
       }
 
@@ -171,9 +174,9 @@ export default function App() {
         } catch (_e) {
           console.warn(_e);
         }
-        toast.success('Marked as Posted! 🚀', { id: `status-${video.localId}` });
+        toast.success('Marked as Posted! 🚀', { id: `status-${videoKey}` });
       } else {
-        toast('Moved back to Drafts', { id: `status-${video.localId}`, icon: '📝' });
+        toast('Moved back to Drafts', { id: `status-${videoKey}`, icon: '📝' });
       }
 
       if (isOnline && serverStatus.serverConnected) {
@@ -188,11 +191,13 @@ export default function App() {
   // Delete Video with Undo Toast
   const handleDeleteVideo = async (video) => {
     const backupVideo = { ...video };
+    const videoKey = video.id || video.localId;
     try {
-      await db.videos.delete(video.localId);
+      if (video.id) await db.videos.delete(video.id);
+      if (video.localId && video.localId !== video.id) await db.videos.delete(video.localId);
       await refreshVideos();
 
-      if (playerVideo && playerVideo.localId === video.localId) {
+      if (playerVideo && (playerVideo.id === videoKey || playerVideo.localId === videoKey)) {
         setPlayerVideo(null);
       }
 
@@ -213,7 +218,7 @@ export default function App() {
             </button>
           </div>
         ),
-        { duration: 4000, id: `del-${video.localId}` }
+        { duration: 4000, id: `del-${videoKey}` }
       );
 
       // Silently sync delete if online

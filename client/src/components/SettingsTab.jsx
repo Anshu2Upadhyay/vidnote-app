@@ -49,21 +49,26 @@ export default function SettingsTab({
       const allVideos = await db.videos.toArray();
       const allGroups = await db.savedTagGroups.toArray();
 
-      // Clean binary Blobs for standard JSON export
+      // Clean reference-only JSON export (zero heavy blobs)
       const backupData = {
         app: 'VidNote',
-        version: '1.0.0',
+        version: '2.0.0',
+        architecture: 'zero-duplicate-references',
         exportedAt: new Date().toISOString(),
         videos: allVideos.map((v) => ({
-          localId: v.localId,
+          id: v.id || v.localId,
+          localId: v.id || v.localId,
+          title: v.title || v.videoName || 'Video Draft',
+          videoUri: v.videoUri || '',
           caption: v.caption,
           hashtags: v.hashtags,
           category: v.category,
           duration: v.duration,
           durationFormatted: v.durationFormatted,
           thumbnail: v.thumbnail,
-          isPosted: v.isPosted,
-          clientCreatedAt: v.clientCreatedAt,
+          status: v.status || (v.isPosted ? 'Posted' : 'Draft'),
+          isPosted: v.status === 'Posted' || v.isPosted,
+          createdAt: v.createdAt || v.clientCreatedAt,
         })),
         hashtagGroups: allGroups,
       };

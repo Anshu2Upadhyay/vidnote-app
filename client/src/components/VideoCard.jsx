@@ -19,10 +19,11 @@ export default function VideoCard({
       return;
     }
 
+    const videoKey = video.id || video.localId;
     navigator.clipboard.writeText(fullBlock).then(() => {
       setCopied(true);
       toast.success('Caption & Hashtags copied! 📋', {
-        id: `copy-${video.localId}`,
+        id: `copy-${videoKey}`,
         duration: 2500,
         style: {
           borderRadius: '12px',
@@ -76,17 +77,22 @@ export default function VideoCard({
         </div>
 
         {/* Top-Left: Smart Status Badge (Draft vs Posted ✅) */}
-        <button
-          onClick={handleToggleStatus}
-          title="Tap to toggle status"
-          className={`absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight shadow-sm backdrop-blur-md transition-all active:scale-90 ${
-            video.isPosted
-              ? 'bg-emerald-500/90 hover:bg-emerald-600 text-white border border-emerald-400/40'
-              : 'bg-black/60 hover:bg-black/80 text-white/90 border border-white/20'
-          }`}
-        >
-          {video.isPosted ? 'Posted ✅' : 'Draft'}
-        </button>
+        {(() => {
+          const isPosted = video.status === 'Posted' || video.isPosted;
+          return (
+            <button
+              onClick={handleToggleStatus}
+              title="Tap to toggle status"
+              className={`absolute top-2 left-2 z-10 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-tight shadow-sm backdrop-blur-md transition-all active:scale-90 ${
+                isPosted
+                  ? 'bg-emerald-500/90 hover:bg-emerald-600 text-white border border-emerald-400/40'
+                  : 'bg-black/60 hover:bg-black/80 text-white/90 border border-white/20'
+              }`}
+            >
+              {isPosted ? 'Posted ✅' : 'Draft'}
+            </button>
+          );
+        })()}
 
         {/* Top-Right: Delete Icon Badge (White circle with red X) */}
         <button

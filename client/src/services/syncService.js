@@ -39,18 +39,22 @@ export async function syncVideosWithBackend() {
       return { success: true, count: 0, message: 'Nothing to sync' };
     }
 
-    // Prepare payload without massive binary Blobs (we sync metadata + Base64 thumbnail)
+    // Prepare payload with zero-duplicate reference model (metadata + Base64 thumbnail)
     const payload = localVideos.map((v) => ({
-      localId: v.localId,
+      localId: v.id || v.localId,
+      id: v.id || v.localId,
+      title: v.title || v.videoName || '',
+      videoUri: v.videoUri || '',
       caption: v.caption,
       hashtags: v.hashtags,
       category: v.category,
       duration: v.duration,
       durationFormatted: v.durationFormatted,
       thumbnail: v.thumbnail,
-      isPosted: v.isPosted,
-      clientCreatedAt: v.clientCreatedAt,
-      clientUpdatedAt: v.clientUpdatedAt,
+      status: v.status || (v.isPosted ? 'Posted' : 'Draft'),
+      isPosted: v.status === 'Posted' || v.isPosted,
+      clientCreatedAt: v.createdAt || v.clientCreatedAt,
+      clientUpdatedAt: v.clientUpdatedAt || Date.now(),
     }));
 
     const res = await fetch(`${API_BASE_URL}/videos/sync`, {

@@ -9,7 +9,7 @@ import toast from 'react-hot-toast';
 
 export default function StatsTab({ videos }) {
   const totalVideos = videos.length;
-  const postedCount = videos.filter((v) => v.isPosted).length;
+  const postedCount = videos.filter((v) => v.status === 'Posted' || v.isPosted).length;
   const draftCount = totalVideos - postedCount;
   const postedPercent = totalVideos > 0 ? Math.round((postedCount / totalVideos) * 100) : 0;
 
