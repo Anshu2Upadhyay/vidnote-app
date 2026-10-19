@@ -1,6 +1,5 @@
 /** @type {import('tailwindcss').Config} */
 export default {
-  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -9,42 +8,31 @@ export default {
     extend: {
       colors: {
         brand: {
-          50: '#eff6ff',
-          100: '#dbeafe',
-          500: '#3b82f6',
-          600: '#2563eb', // Royal Blue
-          700: '#1d4ed8',
+          navy: '#1E293B',
+          teal: '#0EA5E9',
+          blue: '#2563EB',
+          blue50: '#EFF6FF',
+          red: '#EF4444',
         },
-        navy: {
-          900: '#0f172a',
-          800: '#1e293b', // Deep Navy
-        },
-        accent: {
-          teal: '#0ea5e9', // Vibrant Teal/Blue
-        }
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
-        'fade-in': 'fadeIn 0.2s ease-in-out',
-        'slide-up': 'slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
-        'pulse-subtle': 'pulseSubtle 2s infinite',
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'toast-in': 'toastIn 0.3s ease-out forwards',
+        'toast-out': 'toastOut 0.3s ease-in forwards',
       },
       keyframes: {
-        fadeIn: {
-          '0%': { opacity: '0', transform: 'translateY(4px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        toastIn: {
+          '0%': { transform: 'translateY(100px) scale(0.9)', opacity: '0' },
+          '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
         },
-        slideUp: {
-          '0%': { transform: 'translateY(100%)' },
-          '100%': { transform: 'translateY(0)' },
+        toastOut: {
+          '0%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+          '100%': { transform: 'translateY(100px) scale(0.9)', opacity: '0' },
         },
-        pulseSubtle: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
-        }
-      }
+      },
     },
   },
   plugins: [],

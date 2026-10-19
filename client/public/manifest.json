@@ -1,27 +1,10 @@
 {
+  "name": "VidNote - Caption & Hashtag Saver",
   "short_name": "VidNote",
-  "name": "VidNote: Caption & Hashtag Saver",
-  "description": "Offline-First Mobile App for saving video drafts, captions, and hashtag bundles",
-  "icons": [
-    {
-      "src": "/icon-192.png",
-      "type": "image/png",
-      "sizes": "192x192"
-    },
-    {
-      "src": "/icon-512.png",
-      "type": "image/png",
-      "sizes": "512x512"
-    },
-    {
-      "src": "/favicon.svg",
-      "type": "image/svg+xml",
-      "sizes": "any"
-    }
-  ],
+  "description": "Offline-first video caption and hashtag saver",
   "start_url": "/",
+  "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#2563EB",
-  "display": "standalone",
   "orientation": "portrait"
 }

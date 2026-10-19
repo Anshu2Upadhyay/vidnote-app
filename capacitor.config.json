@@ -3,10 +3,10 @@
   "appName": "VidNote",
   "webDir": "client/dist",
   "bundledWebRuntime": false,
-  "server": {
-    "url": "https://vidnote-app.vercel.app",
-    "androidScheme": "https",
-    "cleartext": true,
-    "_comment": "LIVE OVER-THE-AIR (OTA) UPDATES: Connected to deployed Vercel URL for instant cloud updates. The PWA Service Worker ensures 100% offline resilience."
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 2000,
+      "backgroundColor": "#2563EB"
+    }
   }
 }
