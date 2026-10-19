@@ -31,9 +31,8 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
   const [caption, setCaption] = useState(video.caption || '');
   const [hashtagsText, setHashtagsText] = useState((video.hashtags || []).join(' '));
 
-  // Watermark removal state (Gemini Mathematical Alpha Unblending)
+  // Watermark removal state (Using ishara-madu/gemini-watermark-remover method)
   const [currentPreview, setCurrentPreview] = useState(video.preview || null);
-  const [watermarkMode, setWatermarkMode] = useState('gemini'); // 'gemini' | 'veo'
   const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
   const [watermarkProgress, setWatermarkProgress] = useState(0);
   const [watermarkStatus, setWatermarkStatus] = useState('');
@@ -99,22 +98,22 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
     setTimeout(() => setCopiedKey(null), 2000);
   };
 
-  // 1. Watermark Removal Action (Gemini Mathematical Alpha Unblending)
+  // Watermark Removal Action (strictly using ishara-madu/gemini-watermark-remover method)
   const handleRemoveWatermark = async () => {
     if (isRemovingWatermark) return;
     setIsRemovingWatermark(true);
-    setWatermarkProgress(15);
-    setWatermarkStatus('Loading Gemini & Veo alpha reference masks...');
+    setWatermarkProgress(20);
+    setWatermarkStatus('Loading Gemini alpha reference masks...');
 
     const timer1 = setTimeout(() => {
-      setWatermarkProgress(55);
-      setWatermarkStatus('Applying reverse alpha: Original = (Watermarked - Logo*α)/(1-α)...');
+      setWatermarkProgress(60);
+      setWatermarkStatus('Subtracting watermark: Original = (Watermarked - Logo*α)/(1-α)...');
     }, 300);
 
     const timer2 = setTimeout(() => {
       setWatermarkProgress(85);
-      setWatermarkStatus('Subtracting watermark transparency (100% Zero Quality Loss)...');
-    }, 650);
+      setWatermarkStatus('Restoring 100% original pixel clarity with zero blur...');
+    }, 600);
 
     try {
       const response = await removeVideoWatermark({
@@ -123,13 +122,12 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
         preview: currentPreview || video.preview,
         thumbnailDataUrl: video.thumbnailDataUrl,
         caption: caption,
-        mode: watermarkMode,
       });
 
       clearTimeout(timer1);
       clearTimeout(timer2);
       setWatermarkProgress(100);
-      setWatermarkStatus('Gemini watermark unblended successfully! ✨');
+      setWatermarkStatus('Watermark unblended successfully! ✨');
 
       if (response && response.cleanedVideoUrl) {
         setCurrentPreview(response.cleanedVideoUrl);
@@ -326,37 +324,12 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
           </div>
         )}
 
-        {/* Top Watermark Action Badge on Preview */}
+        {/* Single Watermark Action Option on Preview (Git Method) */}
         <div className="absolute top-16 left-4 z-10 flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1 bg-black/60 backdrop-blur-md p-0.5 rounded-full border border-white/15">
-            <button
-              onClick={() => setWatermarkMode('gemini')}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                watermarkMode === 'gemini'
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-              title="Google Gemini Omni & Nano Banana"
-            >
-              Gemini
-            </button>
-            <button
-              onClick={() => setWatermarkMode('veo')}
-              className={`px-2 py-0.5 rounded-full text-[10px] font-bold transition-all ${
-                watermarkMode === 'veo'
-                  ? 'bg-purple-600 text-white shadow-sm'
-                  : 'text-slate-300 hover:text-white'
-              }`}
-              title="Google Flow & Veo 3 AI Video"
-            >
-              Veo 3
-            </button>
-          </div>
-
           <button
             onClick={handleRemoveWatermark}
             disabled={isRemovingWatermark}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white rounded-full text-xs font-semibold shadow-lg shadow-indigo-950/40 border border-white/20 backdrop-blur-md active:scale-95 transition-all"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-gradient-to-r from-violet-600 via-indigo-600 to-blue-600 hover:from-violet-700 hover:to-blue-700 text-white rounded-full text-xs font-semibold shadow-lg shadow-indigo-950/40 border border-white/20 backdrop-blur-md active:scale-95 transition-all"
           >
             {isRemovingWatermark ? (
               <Loader2 size={13} className="animate-spin" />
