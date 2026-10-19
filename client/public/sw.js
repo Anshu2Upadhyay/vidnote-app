@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vidnote-v4';
+const CACHE_NAME = 'vidnote-v5';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();

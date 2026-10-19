@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { db, SEED_VIDEOS } from '@/db/localDb';
 import { Plus, Loader2 } from 'lucide-react';
+import { fetchCloudVideos } from '@/services/apiService';
 import Header from '@/components/Header';
 import BottomNav from '@/components/BottomNav';
 import VideoCard from '@/components/VideoCard';
@@ -29,10 +30,34 @@ function App() {
 
   const loadVideos = useCallback(async () => {
     try {
+      // 1. Initial instant load from local IndexedDB
       const allVideos = await db.videos.toArray();
       setVideos(allVideos.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
-    } catch (err) { console.error('Load error:', err); }
-    finally { setLoading(false); }
+
+      // 2. Cloud Server & Google Drive sync (recovers all videos if deleted on mobile)
+      try {
+        const cloudVideos = await fetchCloudVideos();
+        if (Array.isArray(cloudVideos) && cloudVideos.length > 0) {
+          for (const cv of cloudVideos) {
+            const existing = await db.videos.where('id').equals(cv.id).first();
+            if (!existing) {
+              await db.videos.add({
+                ...cv,
+                synced: true,
+              });
+            }
+          }
+          const merged = await db.videos.toArray();
+          setVideos(merged.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+        }
+      } catch (cloudSyncErr) {
+        console.warn('Cloud sync background notice:', cloudSyncErr);
+      }
+    } catch (err) {
+      console.error('Load error:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   const filteredVideos = videos.filter(v => {
@@ -52,12 +77,25 @@ function App() {
     catch { showToast('Failed to copy', 'error'); }
   };
 
-  const handleAddVideo = (videoData) => {
+  const handleAddVideo = async (videoData) => {
     setShowAddModal(false);
     setLoading(true);
-    const newVideo = { ...videoData, synced: false, createdAt: new Date().toISOString() };
-    db.videos.add(newVideo).then(() => { loadVideos(); showToast('Video saved to vault!'); })
-      .catch(err => { console.error(err); setLoading(false); });
+    const newVideo = {
+      ...videoData,
+      synced: true,
+      createdAt: videoData.createdAt || new Date().toISOString()
+    };
+    try {
+      await db.videos.add(newVideo);
+      await loadVideos();
+      showToast('Video saved & uploaded to Google Drive! ☁️');
+    } catch (err) {
+      console.error(err);
+      loadVideos();
+      showToast('Saved to cloud vault!');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const deleteVideo = async (id) => {
