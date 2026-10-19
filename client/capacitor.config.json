@@ -1,0 +1,11 @@
+{
+  "appId": "com.vidnote.app",
+  "appName": "VidNote",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://vidnote-app.vercel.app",
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

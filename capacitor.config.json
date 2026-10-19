@@ -3,6 +3,11 @@
   "appName": "VidNote",
   "webDir": "client/dist",
   "bundledWebRuntime": false,
+  "server": {
+    "url": "https://vidnote-app.vercel.app",
+    "androidScheme": "https",
+    "cleartext": true
+  },
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 2000,
