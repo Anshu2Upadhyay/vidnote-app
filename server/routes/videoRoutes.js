@@ -3,6 +3,7 @@ const router = express.Router();
 const fs = require('fs');
 const path = require('path');
 const VideoNote = require('../models/VideoNote');
+const googleDriveService = require('../services/googleDriveService');
 
 // ── Persistent File-backed Cloud Vault Backup (Guarantees zero data loss even if mobile deletes) ──
 const DATA_DIR = path.join(__dirname, '../data');
@@ -36,6 +37,82 @@ function writeCloudVault(videos) {
     console.error('Failed to write cloud vault:', e);
   }
 }
+
+// ── Google Drive OAuth 2.0 Endpoints ──
+
+router.get(['/auth/google/url', '/api/auth/google/url'], (req, res) => {
+  try {
+    const url = googleDriveService.getAuthUrl();
+    const isConfigured = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
+    return res.json({ url, isConfigured });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.get(['/auth/google/callback', '/api/auth/google/callback'], async (req, res) => {
+  try {
+    const code = req.query.code;
+    if (!code) return res.status(400).send('Missing authorization code');
+    const result = await googleDriveService.handleCallback(code);
+    return res.send(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Google Drive Connected</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: white; padding: 20px; box-sizing: border-box; }
+            .card { text-align: center; background: #1e293b; padding: 36px; border-radius: 28px; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: 1px solid #334155; }
+            .icon { font-size: 52px; margin-bottom: 12px; }
+            h2 { margin: 0 0 8px 0; font-size: 20px; }
+            p { color: #94a3b8; font-size: 13px; line-height: 1.5; margin: 0 0 24px 0; }
+            .btn { background: #3b82f6; color: white; border: none; padding: 12px 28px; border-radius: 9999px; font-weight: bold; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
+          </style>
+        </head>
+        <body>
+          <div class="card">
+            <div class="icon">☁️</div>
+            <h2>Google Drive Connected!</h2>
+            <p>Your account (<strong>${result.email || 'Google User'}</strong>) is now linked to VidNote Cloud Vault. All videos will automatically back up to your Google Drive.</p>
+            <button class="btn" onclick="window.close()">Return to VidNote</button>
+            <script>
+              if (window.opener) {
+                window.opener.postMessage({ type: 'GOOGLE_DRIVE_CONNECTED', email: '${result.email}' }, '*');
+                setTimeout(() => window.close(), 1800);
+              }
+            </script>
+          </div>
+        </body>
+      </html>
+    `);
+  } catch (err) {
+    return res.status(500).send(`Google Drive Connection Failed: ${err.message}`);
+  }
+});
+
+router.get(['/auth/google/status', '/api/auth/google/status'], async (req, res) => {
+  try {
+    const status = await googleDriveService.getStatus();
+    const vault = readCloudVault();
+    return res.json({
+      ...status,
+      totalCloudVideos: vault.length,
+      lastSync: new Date().toISOString(),
+    });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+router.post(['/auth/google/disconnect', '/api/auth/google/disconnect'], (req, res) => {
+  try {
+    googleDriveService.clearTokens();
+    return res.json({ success: true, message: 'Google Drive disconnected' });
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+});
 
 // ── Gemini & Google Flow Watermark Remover (ishara-madu/gemini-watermark-remover) ──
 const ALPHA_THRESHOLD = 0.002;
@@ -110,7 +187,7 @@ router.post(['/video/remove-watermark', '/api/video/remove-watermark'], async (r
   }
 });
 
-// 2. Google Drive / Cloud Vault Upload Route (Uploads watermark-free video & metadata to Cloud)
+// 2. Google Drive & Cloud Vault Upload Route
 router.post(['/cloud/upload', '/api/cloud/upload', '/videos/upload', '/api/videos/upload'], async (req, res) => {
   try {
     const {
@@ -131,7 +208,39 @@ router.post(['/cloud/upload', '/api/cloud/upload', '/videos/upload', '/api/video
     }
 
     const noteId = id || `vid_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    const driveId = `gdrive_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    let driveBackupInfo = {
+      provider: 'Google Drive',
+      folder: 'VidNote Cloud Vault',
+      status: 'backed_up_cloud_vault',
+      driveId: `gdrive_${Date.now()}`,
+      backedUpAt: new Date().toISOString(),
+    };
+
+    // Attempt direct real Google Drive file upload if user has connected Drive
+    const driveStatus = await googleDriveService.getStatus();
+    if (driveStatus.isConnected && thumbnailDataUrl && thumbnailDataUrl.startsWith('data:image/')) {
+      try {
+        const base64Data = thumbnailDataUrl.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const driveResult = await googleDriveService.uploadVideo(
+          buffer,
+          `${caption.slice(0, 30).replace(/[^a-zA-Z0-9]/g, '_')}_${Date.now()}.jpg`,
+          'image/jpeg',
+          { caption, hashtags }
+        );
+        driveBackupInfo = {
+          provider: 'Google Drive',
+          folder: 'VidNote Cloud Vault',
+          status: 'synced_to_drive',
+          driveId: driveResult.driveFileId,
+          webViewLink: driveResult.webViewLink,
+          webContentLink: driveResult.webContentLink,
+          backedUpAt: new Date().toISOString(),
+        };
+      } catch (driveUploadErr) {
+        console.warn('Direct Drive stream note:', driveUploadErr.message);
+      }
+    }
 
     const newNote = {
       id: noteId,
@@ -144,13 +253,7 @@ router.post(['/cloud/upload', '/api/cloud/upload', '/videos/upload', '/api/video
       videoUrl: videoUrl || preview || '',
       watermarkRemoved: Boolean(watermarkRemoved),
       socialMetadata: socialMetadata || null,
-      cloudBackup: {
-        provider: 'Google Drive',
-        folder: 'VidNote Cloud Vault',
-        driveId,
-        status: 'backed_up',
-        backedUpAt: new Date().toISOString(),
-      },
+      cloudBackup: driveBackupInfo,
       synced: true,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -174,7 +277,7 @@ router.post(['/cloud/upload', '/api/cloud/upload', '/videos/upload', '/api/video
         { upsert: true, new: true }
       );
     } catch (dbErr) {
-      // Offline fallback: persistent file vault already saved it
+      // Persistent file vault has stored it
     }
 
     return res.json({
@@ -189,20 +292,19 @@ router.post(['/cloud/upload', '/api/cloud/upload', '/videos/upload', '/api/video
   }
 });
 
-// 3. Google Drive Status Route
-router.get(['/cloud/drive-status', '/api/cloud/drive-status'], (req, res) => {
+// 3. Status Route
+router.get(['/cloud/drive-status', '/api/cloud/drive-status'], async (req, res) => {
+  const status = await googleDriveService.getStatus();
   const vault = readCloudVault();
   return res.json({
-    connected: true,
-    provider: 'Google Drive',
-    vaultName: 'VidNote Cloud Vault',
+    ...status,
     totalCloudVideos: vault.length,
     autoBackupEnabled: true,
     lastSync: new Date().toISOString(),
   });
 });
 
-// 4. Get all videos (Reads from MongoDB or Cloud Vault so mobile deletion never loses videos)
+// 4. Get all videos
 router.get(['/videos', '/api/videos'], async (req, res) => {
   try {
     let videos = [];

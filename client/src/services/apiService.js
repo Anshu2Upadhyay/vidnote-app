@@ -204,22 +204,50 @@ export async function fetchCloudVideos() {
 }
 
 /**
- * Check Google Drive Vault status
+ * Get Google Drive OAuth 2.0 URL
  */
-export async function fetchGoogleDriveStatus() {
+export async function fetchGoogleAuthUrl() {
   try {
-    const res = await fetch(`${API_BASE}/api/cloud/drive-status`);
+    const res = await fetch(`${API_BASE}/api/auth/google/url`);
     if (res.ok) {
       return await res.json();
     }
   } catch (err) {
-    // Fallback
+    console.warn('Could not fetch Google auth url:', err);
+  }
+  return { url: null, isConfigured: false };
+}
+
+/**
+ * Disconnect Google Drive account
+ */
+export async function disconnectGoogleAccount() {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/google/disconnect`, { method: 'POST' });
+    if (res.ok) return await res.json();
+  } catch (e) {}
+  return { success: false };
+}
+
+/**
+ * Check Google Drive Vault status
+ */
+export async function fetchGoogleDriveStatus() {
+  try {
+    const res = await fetch(`${API_BASE}/api/auth/google/status`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('Could not fetch drive status:', err);
   }
   return {
-    connected: true,
+    isConnected: false,
+    email: null,
     provider: 'Google Drive',
     vaultName: 'VidNote Cloud Vault',
     autoBackupEnabled: true,
   };
 }
+
 

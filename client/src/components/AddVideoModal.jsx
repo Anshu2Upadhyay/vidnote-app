@@ -16,8 +16,8 @@ import {
   CheckCircle2,
   UploadCloud
 } from 'lucide-react';
-import { removeVideoWatermark, generateSmartAutofill, uploadToCloudVault } from '@/services/apiService';
-import { geminiWatermarkEngine } from '@/services/geminiWatermarkEngine';
+import { VideoProcessingPipeline } from '@/services/videoPipeline';
+import { generateSmartAutofill } from '@/services/apiService';
 
 const CATS = ['Reels', 'YouTube', 'Ideas', 'Travel'];
 
@@ -41,13 +41,11 @@ export default function AddVideoModal({ onSave, onClose }) {
   const [uploadStatus, setUploadStatus] = useState('');
 
   // Watermark removal state
-  const [isRemovingWatermark, setIsRemovingWatermark] = useState(false);
   const [watermarkRemoved, setWatermarkRemoved] = useState(false);
 
   // Social Metadata State
   const [showSocialSection, setShowSocialSection] = useState(false);
   const [socialPlatform, setSocialPlatform] = useState('youtube');
-  const [isAutoFilling, setIsAutoFilling] = useState(false);
 
   // YouTube
   const [ytTitle, setYtTitle] = useState('');
@@ -63,171 +61,60 @@ export default function AddVideoModal({ onSave, onClose }) {
   const [fbPostText, setFbPostText] = useState('');
   const [fbHashtags, setFbHashtags] = useState('');
 
-  const [copiedKey, setCopiedKey] = useState(null);
   const inputRef = useRef(null);
-
-  const fmt = (s) => {
-    if (!s || isNaN(s)) return '0:00';
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return `${m}:${sec.toString().padStart(2, '0')}`;
-  };
-
-  /**
-   * Reliable Frame Extraction that works on Android, iOS, Capacitor, and Desktop
-   */
-  const extractReliableThumbnail = (videoFile, videoUrl) => {
-    return new Promise((resolve) => {
-      const v = document.createElement('video');
-      v.preload = 'auto';
-      v.muted = true;
-      v.playsInline = true;
-      v.crossOrigin = 'anonymous';
-      v.src = videoUrl;
-
-      let resolved = false;
-      const finish = async (success) => {
-        if (resolved) return;
-        resolved = true;
-        clearTimeout(timer);
-
-        if (success && v.videoWidth > 0 && v.videoHeight > 0) {
-          try {
-            const w = Math.min(800, v.videoWidth);
-            const h = Math.round((w / v.videoWidth) * v.videoHeight);
-            const c = document.createElement('canvas');
-            c.width = w;
-            c.height = h;
-            const ctx = c.getContext('2d', { willReadFrequently: true });
-            ctx.drawImage(v, 0, 0, w, h);
-
-            // Clean watermark on the thumbnail frame using reverse-alpha engine
-            try {
-              await geminiWatermarkEngine.cleanCanvas(c, { gain: 0.85 });
-            } catch (cleanErr) {
-              console.warn('Canvas watermark clean fallback:', cleanErr);
-            }
-
-            const dataUrl = c.toDataURL('image/jpeg', 0.9);
-            resolve(dataUrl);
-            return;
-          } catch (e) {
-            console.warn('Canvas drawImage error:', e);
-          }
-        }
-
-        // Fallback SVG thumbnail
-        resolve(
-          "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='250' viewBox='0 0 400 250'%3E%3Crect width='400' height='250' fill='%230F172A'/%3E%3Ccircle cx='200' cy='125' r='32' fill='%236366F1'/%3E%3Cpolygon points='194,110 214,125 194,140' fill='white'/%3E%3C/svg%3E"
-        );
-      };
-
-      const timer = setTimeout(() => {
-        finish(false);
-      }, 5000);
-
-      v.onloadedmetadata = () => {
-        setDuration(fmt(v.duration));
-        try {
-          const seekTime = Math.min(Math.max((v.duration || 2) * 0.15, 0.5), Math.max(0.5, (v.duration || 2) - 0.5));
-          v.currentTime = seekTime;
-        } catch {
-          finish(true);
-        }
-      };
-
-      v.onseeked = () => finish(true);
-      v.oncanplay = () => {
-        if (!v.currentTime) {
-          try { v.currentTime = 0.5; } catch { finish(true); }
-        }
-      };
-      v.onerror = () => finish(false);
-    });
-  };
 
   /**
    * Automated Pipeline triggered immediately upon selecting video:
-   * 1. Extracts clean frame
-   * 2. Removes watermark via AI reverse-alpha unblending
+   * 1. Extracts verified non-black frame
+   * 2. Unblends watermark with reverse-alpha formula
    * 3. AI Generates Title, Caption, and Viral Hashtags automatically
    */
   const pickFile = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
     setFile(f);
-
-    const url = URL.createObjectURL(f);
-    setPreview(url);
-
-    // Start Automated AI Pipeline
     setIsProcessingPipeline(true);
-    setPipelineProgress(20);
-    setPipelineStep('Extracting high-resolution video thumbnail...');
+    setPipelineProgress(15);
+    setPipelineStep('Ingesting video file & decoding stream...');
 
     try {
-      // Step 1: Extract real thumbnail
-      const extractedThumb = await extractReliableThumbnail(f, url);
-      setThumbUrl(extractedThumb);
-      setPipelineProgress(50);
-      setPipelineStep('✨ Removing watermark with Gemini Alpha Unblender...');
-
-      // Step 2: Initialize & clean watermark
-      await geminiWatermarkEngine.init();
-      setWatermarkRemoved(true);
-      setPipelineProgress(75);
-      setPipelineStep('🪄 AI generating smart Title, Caption & viral Hashtags...');
-
-      // Derive seed name from video file
-      const rawName = f.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-      const cleanSeedTitle = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-
-      // Step 3: Trigger AI Smart Autofill
-      const autofillRes = await generateSmartAutofill({
-        title: cleanSeedTitle,
-        caption: cleanSeedTitle,
-        category,
-        hashtags: ['viral', 'trending', category.toLowerCase(), 'vidnote'],
+      const pipeline = new VideoProcessingPipeline((status) => {
+        setPipelineStep(status.message);
+        setPipelineProgress(status.percent);
       });
 
-      if (autofillRes) {
-        if (autofillRes.youtube?.title) {
-          setCaption(autofillRes.youtube.title.replace(/\|.*$/, '').trim());
-          setYtTitle(autofillRes.youtube.title);
-          setYtDescription(autofillRes.youtube.description || '');
-          setYtTags(autofillRes.youtube.tags || '');
-          setYtHashtags(autofillRes.youtube.hashtags || '');
-        } else {
-          setCaption(cleanSeedTitle);
-        }
+      const res = await pipeline.runIngestPipeline(f);
 
-        if (autofillRes.instagram) {
-          setIgCaption(autofillRes.instagram.reelCaption || '');
-          setIgHashtags(autofillRes.instagram.hashtags || '');
-          if (autofillRes.instagram.hashtags) {
-            setHashtags(autofillRes.instagram.hashtags);
-          }
-        }
+      setPreview(res.preview);
+      setThumbUrl(res.thumbnailDataUrl);
+      setDuration(res.duration);
+      setCaption(res.caption);
+      setHashtags(res.hashtags);
+      setWatermarkRemoved(true);
 
-        if (autofillRes.facebook) {
-          setFbPostText(autofillRes.facebook.postText || '');
-          setFbHashtags(autofillRes.facebook.hashtags || '');
+      if (res.socialMetadata) {
+        if (res.socialMetadata.youtube) {
+          setYtTitle(res.socialMetadata.youtube.title || '');
+          setYtDescription(res.socialMetadata.youtube.description || '');
+          setYtTags(res.socialMetadata.youtube.tags || '');
+          setYtHashtags(res.socialMetadata.youtube.hashtags || '');
         }
-
+        if (res.socialMetadata.instagram) {
+          setIgCaption(res.socialMetadata.instagram.reelCaption || '');
+          setIgHashtags(res.socialMetadata.instagram.hashtags || '');
+        }
+        if (res.socialMetadata.facebook) {
+          setFbPostText(res.socialMetadata.facebook.postText || '');
+          setFbHashtags(res.socialMetadata.facebook.hashtags || '');
+        }
         setShowSocialSection(true);
-      } else {
-        setCaption(cleanSeedTitle);
       }
-
-      setPipelineProgress(100);
-      setPipelineStep('Ready to save & upload to Google Drive! ✨');
     } catch (err) {
-      console.error('Pipeline error:', err);
-      setCaption(f.name.replace(/\.[^/.]+$/, ''));
+      console.error('Pipeline ingestion error:', err);
+      const raw = f.name.replace(/\.[^/.]+$/, '');
+      setCaption(raw);
     } finally {
-      setTimeout(() => {
-        setIsProcessingPipeline(false);
-      }, 400);
+      setTimeout(() => setIsProcessingPipeline(false), 300);
     }
   };
 
@@ -253,7 +140,7 @@ export default function AddVideoModal({ onSave, onClose }) {
 
     setIsUploadingToCloud(true);
     setUploadPercent(10);
-    setUploadStatus('Preparing cleaned video and Drive metadata...');
+    setUploadStatus('Connecting to Google Drive & Cloud Vault...');
 
     const socialData = (ytTitle || igCaption || fbPostText) ? {
       youtube: { title: ytTitle, description: ytDescription, tags: ytTags, hashtags: ytHashtags },
@@ -275,10 +162,12 @@ export default function AddVideoModal({ onSave, onClose }) {
     };
 
     try {
-      const cloudRes = await uploadToCloudVault(payload, (percent, status) => {
-        setUploadPercent(percent);
-        setUploadStatus(status);
+      const pipeline = new VideoProcessingPipeline((status) => {
+        setUploadPercent(status.percent);
+        setUploadStatus(status.message);
       });
+
+      const cloudRes = await pipeline.runCloudUpload(payload);
 
       setTimeout(() => {
         setIsUploadingToCloud(false);

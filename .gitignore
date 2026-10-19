@@ -23,3 +23,8 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Google Drive Credentials & Tokens
+server/data/google_tokens.json
+server/.env
+
