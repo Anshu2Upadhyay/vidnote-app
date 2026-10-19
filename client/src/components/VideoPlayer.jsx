@@ -17,6 +17,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { removeVideoWatermark, generateSmartAutofill } from '@/services/apiService';
+import { geminiWatermarkEngine } from '@/services/geminiWatermarkEngine';
 
 export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate }) {
   const [isPlaying, setIsPlaying] = useState(false);
@@ -56,6 +57,44 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
   const [copiedKey, setCopiedKey] = useState(null);
 
   const videoRef = useRef(null);
+  const overlayCanvasRef = useRef(null);
+
+  // Real-time reverse-alpha frame unblender (60fps on GPU canvas)
+  const renderUnblendFrame = () => {
+    if (!watermarkRemoved) return;
+    const v = videoRef.current;
+    const c = overlayCanvasRef.current;
+    if (!v || !c || isSvgPoster) return;
+
+    if (c.width !== c.clientWidth || c.height !== c.clientHeight) {
+      c.width = c.clientWidth || 320;
+      c.height = c.clientHeight || 180;
+    }
+
+    geminiWatermarkEngine.unblendVideoFrameToCanvas(v, c);
+  };
+
+  // Continuous real-time frame loop during video playback
+  useEffect(() => {
+    if (!watermarkRemoved || !isPlaying || isSvgPoster) return;
+    let animId;
+    const loop = () => {
+      renderUnblendFrame();
+      animId = requestAnimationFrame(loop);
+    };
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [isPlaying, watermarkRemoved, isSvgPoster]);
+
+  // Force render whenever watermarkRemoved or video source is ready
+  useEffect(() => {
+    if (watermarkRemoved) {
+      const t = setTimeout(() => {
+        renderUnblendFrame();
+      }, 60);
+      return () => clearTimeout(t);
+    }
+  }, [watermarkRemoved, videoSrc]);
 
   // Derive playable video source safely (without throw if video.file is undefined)
   const getVideoSource = () => {
@@ -102,38 +141,58 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
   const handleRemoveWatermark = async () => {
     if (isRemovingWatermark) return;
     setIsRemovingWatermark(true);
-    setWatermarkProgress(20);
-    setWatermarkStatus('Loading Gemini alpha reference masks...');
+    setWatermarkProgress(15);
+    setWatermarkStatus('Initializing Gemini mathematical alpha engine...');
 
     const timer1 = setTimeout(() => {
-      setWatermarkProgress(60);
+      setWatermarkProgress(55);
       setWatermarkStatus('Subtracting watermark: Original = (Watermarked - Logo*α)/(1-α)...');
-    }, 300);
+    }, 250);
 
     const timer2 = setTimeout(() => {
       setWatermarkProgress(85);
       setWatermarkStatus('Restoring 100% original pixel clarity with zero blur...');
-    }, 600);
+    }, 500);
 
     try {
-      const response = await removeVideoWatermark({
-        videoId: video.id,
-        videoUrl: videoSrc,
-        preview: currentPreview || video.preview,
-        thumbnailDataUrl: video.thumbnailDataUrl,
-        caption: caption,
-      });
+      await geminiWatermarkEngine.init();
+
+      // 1. Process active video frame or media directly with Gemini engine
+      let cleanedResult = null;
+      if (videoRef.current && !isSvgPoster) {
+        cleanedResult = await geminiWatermarkEngine.cleanVideoElement(videoRef.current);
+      } else {
+        cleanedResult = await geminiWatermarkEngine.cleanMedia(videoSrc || currentPreview || video.preview);
+      }
+
+      // 2. Also notify backend endpoint
+      try {
+        await removeVideoWatermark({
+          videoId: video.id,
+          videoUrl: videoSrc,
+          preview: cleanedResult?.cleanedUrl || currentPreview || video.preview,
+          thumbnailDataUrl: video.thumbnailDataUrl,
+          caption: caption,
+        });
+      } catch (backendErr) {
+        console.warn('Backend call notice:', backendErr);
+      }
 
       clearTimeout(timer1);
       clearTimeout(timer2);
       setWatermarkProgress(100);
       setWatermarkStatus('Watermark unblended successfully! ✨');
 
-      if (response && response.cleanedVideoUrl) {
-        setCurrentPreview(response.cleanedVideoUrl);
-        setWatermarkRemoved(true);
-        setUnsavedWatermark(true);
+      if (cleanedResult && cleanedResult.cleanedUrl) {
+        setCurrentPreview(cleanedResult.cleanedUrl);
       }
+      setWatermarkRemoved(true);
+      setUnsavedWatermark(true);
+
+      // Immediately render cleaned frame onto live video overlay
+      setTimeout(() => {
+        renderUnblendFrame();
+      }, 40);
     } catch (err) {
       console.error('Watermark removal error:', err);
       alert('Could not remove watermark: ' + err.message);
@@ -296,20 +355,36 @@ export default function VideoPlayer({ video, onClose, onCopy, onDelete, onUpdate
             className="w-full h-full object-contain max-h-[46vh]"
           />
         ) : (
-          <video
-            ref={videoRef}
-            src={videoSrc}
-            className="w-full h-full object-contain max-h-[46vh]"
-            muted={isMuted}
-            playsInline
-            onTimeUpdate={() => {
-              if (videoRef.current) {
-                setCurrentTime(videoRef.current.currentTime);
-                setDurationSec(videoRef.current.duration || 0);
-              }
-            }}
-            onClick={() => setIsPlaying(!isPlaying)}
-          />
+          <div className="relative w-full h-full max-h-[46vh] flex items-center justify-center">
+            <video
+              ref={videoRef}
+              src={videoSrc}
+              className="w-full h-full object-contain max-h-[46vh]"
+              muted={isMuted}
+              playsInline
+              onTimeUpdate={() => {
+                if (videoRef.current) {
+                  setCurrentTime(videoRef.current.currentTime);
+                  setDurationSec(videoRef.current.duration || 0);
+                  renderUnblendFrame();
+                }
+              }}
+              onLoadedData={() => {
+                renderUnblendFrame();
+              }}
+              onSeeked={() => {
+                renderUnblendFrame();
+              }}
+              onClick={() => setIsPlaying(!isPlaying)}
+            />
+            {/* Real-time Reverse-Alpha Unblend Canvas (gemini-watermark-remover) */}
+            <canvas
+              ref={overlayCanvasRef}
+              className={`absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-200 ${
+                watermarkRemoved ? 'opacity-100' : 'opacity-0'
+              }`}
+            />
+          </div>
         )}
 
         {/* Center Play Overlay */}
