@@ -9,23 +9,12 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <script>
-      // Service Worker registration for PWA with auto-update check
+      // Safe Service Worker registration (no reload loops)
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => {
-              console.log('SW registered:', reg.scope);
-              reg.update();
-            })
-            .catch(err => console.log('SW registration failed:', err));
-        });
-
-        let refreshing = false;
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
-          if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-          }
+          navigator.serviceWorker.register('/sw.js').catch(err => {
+            console.log('SW registration notice:', err);
+          });
         });
       }
     </script>
